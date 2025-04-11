@@ -1,9 +1,13 @@
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
-const sql = postgres(process.env.POSTGRES_URL!, { 
+// 使用 DATABASE_URL，这是 Neon 推荐的连接字符串
+const sql = postgres(process.env.DATABASE_URL!, { 
   ssl: {
     rejectUnauthorized: true
+  },
+  connection: {
+    timeout: 60000 // 增加连接超时时间
   }
 });
 
