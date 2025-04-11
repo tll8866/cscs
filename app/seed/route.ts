@@ -2,10 +2,19 @@ import { hash } from 'bcryptjs';
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+if (!process.env.POSTGRES_URL) {
+  throw new Error('POSTGRES_URL is not defined');
+}
+
+const sql = postgres(process.env.POSTGRES_URL, { 
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 async function seedUsers() {
   try {
+    console.log('Starting to seed users...');
     await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
     await sql`
       CREATE TABLE IF NOT EXISTS users (
@@ -127,14 +136,20 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
+    console.log('Starting database seeding...');
     await seedUsers();
     await seedCustomers();
     await seedInvoices();
     await seedRevenue();
     
-    return Response.json({ message: 'Database seeded successfully' });
+    return Response.json({ message: 'Database seeded successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error seeding database:', error);
+    if (error instanceof Error) {
+      return Response.json({ error: error.message }, { status: 500 });
+    }
     return Response.json({ error: 'Failed to seed database' }, { status: 500 });
+  } finally {
+    await sql.end();
   }
 }
